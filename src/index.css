@@ -1,0 +1,60 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-cinzel: 'Cinzel', serif;
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #030712;
+    color: #F3F4F6;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, .font-hextech {
+    font-family: var(--font-cinzel);
+    letter-spacing: 0.04em;
+  }
+}
+
+/* Custom League Hextech Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #091428;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e3a5f;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0AC8B9;
+}
+
+/* Hextech Gold & Cyan Accents */
+.hextech-gold-border {
+  border: 1px solid #785A28;
+  box-shadow: 0 0 0 1px rgba(200, 170, 110, 0.15) inset;
+}
+
+.hextech-gold-border:hover {
+  border-color: #C8AA6E;
+  box-shadow: 0 0 8px rgba(200, 170, 110, 0.25) inset;
+}
+
+.hextech-glow-blue {
+  box-shadow: 0 0 16px -2px rgba(10, 200, 185, 0.25);
+}
+
+.hextech-glow-gold {
+  box-shadow: 0 0 16px -2px rgba(200, 170, 110, 0.25);
+}

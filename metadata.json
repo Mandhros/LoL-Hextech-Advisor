@@ -1,0 +1,8 @@
+{
+  "name": "LoL Hextech Advisor",
+  "description": "Assistant de Builds & Draft League of Legends avec simulateur 5v5, génération de 5 builds adaptatifs et exotiques viables propulsés par Gemini AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "summary":  "Plan d'architecture complet pour l'Assistant de Builds & Draft League of Legends (LoL) : simulateur de draft 5v5, générateur de 5 builds (Meta, Matchups, 2 Exotiques Viables via Gemini), intégration hybride Data Dragon Riot et déploiement statique GitHub Pages avec GitHub Actions.",
+  "updatedAt":  "2026-10-31T12:22:24.528056297Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}
