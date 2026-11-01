@@ -5,7 +5,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { LoLRole, LoLChampion, DraftState, CompAnalysis } from '../types/lol';
-import { Shield, Swords, Wand2, X, Sparkles, Ban, Trash2, Search, CornerDownLeft, Edit3 } from 'lucide-react';
+import { Shield, Swords, Wand2, X, Sparkles, Ban, Trash2, Search, CornerDownLeft, Edit3, Award } from 'lucide-react';
 import { LoLImage } from './LoLImage';
 import { soundEffects } from '../utils/audio';
 
@@ -891,10 +891,13 @@ export const DraftArena: React.FC<DraftArenaProps> = ({
         <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
           <button
             onClick={() => { soundEffects.playSelect(); onOpenDraftSuggestions(); }}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-200 bg-[#162238] hover:bg-[#1f3152] border border-[#0AC8B9]/40 rounded-lg transition-colors whitespace-nowrap"
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-[#162238] to-[#1E3050] hover:from-[#1E3050] hover:to-[#2A4268] border border-[#C8AA6E]/60 hover:border-[#C8AA6E] rounded-lg shadow-md transition-all whitespace-nowrap"
           >
-            <Sparkles className="w-4 h-4 text-[#0AC8B9]" />
-            Suggestions IA de Draft
+            <Award className="w-4 h-4 text-[#C8AA6E]" />
+            <span>Coach Virtuel Worlds</span>
+            <span className="text-[10px] bg-[#0AC8B9]/20 text-[#0AC8B9] px-1.5 py-0.5 rounded font-mono border border-[#0AC8B9]/30">
+              IA & Offline
+            </span>
           </button>
 
           <button

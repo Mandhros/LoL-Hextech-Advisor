@@ -187,7 +187,8 @@ Pour chacun :
 
 /**
  * Route POST /api/gemini/draft-recommendations
- * Recommande des champions et contre-picks avec exclusion stricte des champions déjà pris ou bannis
+ * Recommande des champions et contre-picks de niveau Coach des Worlds
+ * avec exclusion stricte des champions déjà pris ou bannis et diagnostic tactique complet
  */
 app.post('/api/gemini/draft-recommendations', async (req, res) => {
   try {
@@ -211,32 +212,29 @@ app.post('/api/gemini/draft-recommendations', async (req, res) => {
 
     const enemyList = enemies ? Object.entries(enemies).map(([r, c]: [string, any]) => `${r}: ${c ? c.name : 'Vide'}`).join(', ') : 'Aucun';
     const allyList = allies ? Object.entries(allies).map(([r, c]: [string, any]) => `${r}: ${c ? c.name : 'Vide'}`).join(', ') : 'Aucun';
-    const bansList = forbiddenListStr;
+    const directOpponent = enemies && enemies[playerRole] ? enemies[playerRole].name : null;
 
-    const systemPrompt = `Tu es un coach d'esport d'élite de League of Legends expert en Champion Select (Draft 5v5).
+    const systemPrompt = `Tu es le Head Coach d'une équipe championne du monde de League of Legends (ex: T1, Gen.G, BLG).
+Ton niveau d'analyse tactique de la draft est infaillible, précis et digne des Worlds.
+
 RÈGLE ABSOLUE ET INVIOLABLE :
 Les champions suivants sont DÉJÀ SÉLECTIONNÉS PAR L'UNE DES ÉQUIPES OU BANNIS :
 [${forbiddenListStr}]
 
-IL EST STRICTEMENT INTERDIT DE RECOMMANDER UN CHAMPION QUI FIGURE DANS CETTE LISTE.
-Tu dois proposer UNIQUEMENT des champions DISPONIBLES pour le rôle : ${playerRole}.`;
+IL EST FORMELLEMENT ET STRICTEMENT INTERDIT DE RECOMMANDER UN CHAMPION QUI FIGURE DANS CETTE LISTE.
+Tu dois proposer UNIQUEMENT des champions DISPONIBLES et adaptés pour le rôle : ${playerRole}.`;
 
     const userPrompt = `Rôle du joueur à combler : ${playerRole}
-Composition Alliée : ${allyList}
-Composition Ennemie : ${enemyList}
-Champions Bannis et Déjà Sélectionnés (INTERDITS) : ${bansList}
+Adversaire direct de lane : ${directOpponent ? directOpponent : "Non encore révélé (Situation de Blind-Pick)"}
+Composition Alliée actuelle : ${allyList}
+Composition Ennemie actuelle : ${enemyList}
+Champions Déjà Sélectionnés ou Bannis (STRICTEMENT INTERDITS) : [${forbiddenListStr}]
 
-Suggère EXACTEMENT 3 champions DISPONIBLES et NON BANNIS pour le rôle ${playerRole} :
-1. Un contre-pick direct de la comp ennemie (type: "COUNTER")
-2. Une synergie puissante avec les alliés (type: "SYNERGY")
-3. Un pick surprise avec un build exotique cheese très dévastateur (type: "EXOTIC_CHEESE")
-
-Pour chaque champion :
-- championName : nom officiel exact du champion (ex: "Aatrox", "Ahri", "Viego", etc. INTERDIT si déjà dans la liste des interdits !)
-- synergyType : "COUNTER" | "SYNERGY" | "EXOTIC_CHEESE"
-- score : note de pertinence sur 100
-- reason : explication claire et concise en français (max 2 phrases)
-- exoticBuildHook : nom et brève description de l'approche de build exotique associée`;
+Fournis un diagnostic d'élite de la draft (coachDiagnosis) et EXACTEMENT 4 propositions de champions DISPONIBLES pour ${playerRole} :
+1. "COUNTER" : Contre-pick chirurgical de l'adversaire ou de la comp ennemie (Tier: "S+", Score: 96-99)
+2. "SYNERGY" : Synergie 5v5 optimale et combo d'équipe avec vos alliés (Tier: "S", Score: 94-97)
+3. "BLIND_SAFE" : Pick inébranlable et autonome avec zéro matchup fatal (Tier: "S", Score: 93-96)
+4. "EXOTIC_CHEESE" : Pocket pick surprise très percutant avec build exotique dévastateur (Tier: "A+", Score: 90-94)`;
 
     let response;
     try {
@@ -247,18 +245,43 @@ Pour chaque champion :
           systemInstruction: systemPrompt,
           responseMimeType: 'application/json',
           responseSchema: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                championName: { type: Type.STRING },
-                synergyType: { type: Type.STRING },
-                score: { type: Type.NUMBER },
-                reason: { type: Type.STRING },
-                exoticBuildHook: { type: Type.STRING }
+            type: Type.OBJECT,
+            properties: {
+              coachDiagnosis: {
+                type: Type.OBJECT,
+                properties: {
+                  verdict: { type: Type.STRING },
+                  damageAssessment: { type: Type.STRING },
+                  missingNeeds: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING }
+                  },
+                  teamfightIdentity: { type: Type.STRING },
+                  priorityGamePlan: { type: Type.STRING }
+                },
+                required: ['verdict', 'damageAssessment', 'missingNeeds', 'teamfightIdentity', 'priorityGamePlan']
               },
-              required: ['championName', 'synergyType', 'score', 'reason', 'exoticBuildHook']
-            }
+              suggestions: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    championName: { type: Type.STRING },
+                    synergyType: { type: Type.STRING },
+                    tier: { type: Type.STRING },
+                    score: { type: Type.NUMBER },
+                    reason: { type: Type.STRING },
+                    winCondition: { type: Type.STRING },
+                    lanePhasePlan: { type: Type.STRING },
+                    teamfightRole: { type: Type.STRING },
+                    coachWarning: { type: Type.STRING },
+                    exoticBuildHook: { type: Type.STRING }
+                  },
+                  required: ['championName', 'synergyType', 'score', 'reason', 'winCondition', 'lanePhasePlan', 'teamfightRole', 'coachWarning']
+                }
+              }
+            },
+            required: ['coachDiagnosis', 'suggestions']
           }
         }
       });
@@ -274,20 +297,25 @@ Pour chaque champion :
       });
     }
 
-    const rawText = response.text || '[]';
-    const jsonMatch = rawText.match(/\[[\s\S]*\]/);
-    const rawSuggestions = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
+    const rawText = response.text || '{}';
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    const parsedData = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
+
+    const rawSuggestions = Array.isArray(parsedData.suggestions) ? parsedData.suggestions : [];
+    const forbiddenLower = new Set(forbiddenNames.map(n => n.toLowerCase()));
 
     // Filtre de sécurité strict côté serveur : exclure tout champion interdit qui aurait fuité
-    const forbiddenLower = new Set(forbiddenNames.map(n => n.toLowerCase()));
     const validSuggestions = rawSuggestions.filter((s: any) => 
       s.championName && !forbiddenLower.has(s.championName.toLowerCase())
     );
 
-    return res.json({ suggestions: validSuggestions });
+    return res.json({ 
+      suggestions: validSuggestions,
+      diagnosis: parsedData.coachDiagnosis || null
+    });
   } catch (error: any) {
     console.warn('Mode fallback activé pour draft-recommendations (quota ou indisponibilité API):', error?.message || error);
-    return res.json({ suggestions: [], fallback: true, error: error?.message || 'Fallback local actif' });
+    return res.json({ suggestions: [], diagnosis: null, fallback: true, error: error?.message || 'Fallback local actif' });
   }
 });
 

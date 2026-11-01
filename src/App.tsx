@@ -14,7 +14,7 @@ import { ApiKeyModal } from './components/ApiKeyModal';
 import { GitHubPagesGuideModal } from './components/GitHubPagesGuideModal';
 import { LcuSyncModal } from './components/LcuSyncModal';
 
-import { LoLChampion, LoLRole, DraftState, LoLBuild, DraftSuggestion } from './types/lol';
+import { LoLChampion, LoLRole, DraftState, LoLBuild, DraftSuggestion, CoachDraftDiagnosis } from './types/lol';
 import { riotDataService } from './services/riotDataService';
 import { buildEngine } from './services/buildEngine';
 import { geminiService } from './services/geminiService';
@@ -66,6 +66,7 @@ export default function App() {
   // Modals
   const [isSuggestionsModalOpen, setIsSuggestionsModalOpen] = useState(false);
   const [draftSuggestions, setDraftSuggestions] = useState<DraftSuggestion[]>([]);
+  const [coachDiagnosis, setCoachDiagnosis] = useState<CoachDraftDiagnosis | null>(null);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
   const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
@@ -345,18 +346,19 @@ export default function App() {
     }
   };
 
-  // Ouvrir les suggestions de draft via Gemini
+  // Ouvrir les suggestions de draft via le Coach Virtuel des Worlds
   const handleOpenDraftSuggestions = async () => {
     setIsSuggestionsModalOpen(true);
     setIsLoadingSuggestions(true);
     try {
-      const results = await geminiService.getDraftSuggestions(
+      const results = await geminiService.getDraftSuggestionsWithDiagnosis(
         draft.playerRole,
         draft.allies,
         draft.enemies,
         draft.bans
       );
-      setDraftSuggestions(results);
+      setDraftSuggestions(results.suggestions);
+      setCoachDiagnosis(results.diagnosis);
     } catch (err) {
       console.warn('Erreur suggestions:', err);
     } finally {
@@ -537,8 +539,10 @@ export default function App() {
         isOpen={isSuggestionsModalOpen}
         role={draft.playerRole}
         suggestions={draftSuggestions}
+        diagnosis={coachDiagnosis}
         isLoading={isLoadingSuggestions}
         onClose={() => setIsSuggestionsModalOpen(false)}
+        onRefresh={handleOpenDraftSuggestions}
         onSelectChampion={handleSelectFromSuggestions}
       />
 

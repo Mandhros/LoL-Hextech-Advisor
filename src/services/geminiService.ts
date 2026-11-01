@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { LoLChampion, LoLBuild, DraftState, CompAnalysis, DraftSuggestion, RuneTreeKey } from '../types/lol';
+import { LoLChampion, LoLBuild, DraftState, CompAnalysis, DraftSuggestion, RuneTreeKey, CoachDraftDiagnosis, LoLRole } from '../types/lol';
 import { riotDataService } from './riotDataService';
 import { RUNE_TREES_META, DEFAULT_SHARDS } from '../data/starterRunes';
 import { buildEngine } from './buildEngine';
+import { coachEngine } from './coachEngine';
 import { CHAMPION_THEORIES, generateDynamicExoticTheory } from '../data/championTheories';
 
 const LOCAL_STORAGE_KEY_API_KEY = 'lol_advisor_custom_gemini_key';
@@ -76,13 +77,15 @@ export class GeminiService {
   /**
    * Recommandations de Draft 5v5 (Contre-picks, Synergies, Cheese surprise)
    * avec EXCLUSION STRICTE des champions déjà sélectionnés ou bannis
+  /**
+   * Recommandations de draft complètes avec diagnostic de niveau Coach des Worlds
    */
-  async getDraftSuggestions(
-    playerRole: string,
+  async getDraftSuggestionsWithDiagnosis(
+    playerRole: LoLRole,
     allies: DraftState['allies'],
     enemies: DraftState['enemies'],
     bans: DraftState['bans']
-  ): Promise<DraftSuggestion[]> {
+  ): Promise<{ suggestions: DraftSuggestion[]; diagnosis: CoachDraftDiagnosis }> {
     // Calcul de l'ensemble des IDs déjà pris ou bannis
     const unavailableIds = new Set<string>();
     Object.values(allies).forEach(c => { if (c) unavailableIds.add(c.id); });
@@ -101,15 +104,28 @@ export class GeminiService {
         const data = await response.json();
         if (data.suggestions && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
           const mapped = this.mapRawSuggestions(data.suggestions, unavailableIds, playerRole, enemies, allies);
-          if (mapped.length >= 3) return mapped;
+          if (mapped.length >= 3) {
+            const diagnosis: CoachDraftDiagnosis = data.diagnosis || coachEngine.generateWorldsDraftAnalysis(playerRole, allies, enemies, bans).diagnosis;
+            return { suggestions: mapped, diagnosis };
+          }
         }
       }
     } catch (err) {
-      console.warn('Draft suggestions proxy indisponible, calcul heuristique local:', err);
+      console.warn('Draft suggestions proxy indisponible, exécution du Coach Worlds hors-ligne infaillible:', err);
     }
 
-    // Recommandations heuristiques dynamiques ultra-performantes basées sur les picks réels
-    return this.getFallbackDraftSuggestions(playerRole, unavailableIds, enemies, allies);
+    // Moteur déterministe Coach des Worlds hors-ligne d'une précision infaillible
+    return coachEngine.generateWorldsDraftAnalysis(playerRole, allies, enemies, bans);
+  }
+
+  async getDraftSuggestions(
+    playerRole: string,
+    allies: DraftState['allies'],
+    enemies: DraftState['enemies'],
+    bans: DraftState['bans']
+  ): Promise<DraftSuggestion[]> {
+    const result = await this.getDraftSuggestionsWithDiagnosis(playerRole as LoLRole, allies, enemies, bans);
+    return result.suggestions;
   }
 
   private mapRawAiBuildsToLoLBuilds(champion: LoLChampion, rawBuilds: any[]): LoLBuild[] {
@@ -205,16 +221,27 @@ export class GeminiService {
 
         suggestions.push({
           champion: champ,
-          score: item.score || 90,
-          reason: item.reason || 'Excellente synergie de composition.',
+          score: item.score || 95,
+          tier: item.tier || (item.score >= 96 ? 'S+' : 'S'),
+          reason: item.reason || 'Pick d\'élite recommandé par le Head Coach.',
           synergyType: item.synergyType || 'COUNTER',
+          winCondition: item.winCondition,
+          lanePhasePlan: item.lanePhasePlan,
+          teamfightRole: item.teamfightRole,
+          coachWarning: item.coachWarning,
           exoticBuildHook: hook,
+          keyMatchupAdvantage: item.keyMatchupAdvantage
         });
       }
     }
     return suggestions.length >= 3
-      ? suggestions.slice(0, 3)
-      : this.getFallbackDraftSuggestions(playerRole, unavailableIds, enemies, allies);
+      ? suggestions
+      : coachEngine.generateWorldsDraftAnalysis(
+          playerRole as LoLRole,
+          allies || { TOP: null, JUNGLE: null, MID: null, BOTTOM: null, SUPPORT: null },
+          enemies || { TOP: null, JUNGLE: null, MID: null, BOTTOM: null, SUPPORT: null },
+          { blue: [], red: [] }
+        ).suggestions;
   }
 
   /**

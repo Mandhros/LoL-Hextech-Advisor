@@ -145,10 +145,27 @@ export interface CompAnalysis {
   suggestedFocus: string;
 }
 
+export type CoachSuggestionType = 'COUNTER' | 'SYNERGY' | 'BLIND_SAFE' | 'EXOTIC_CHEESE';
+
 export interface DraftSuggestion {
   champion: LoLChampion;
   score: number;
+  tier?: 'S+' | 'S' | 'A+' | 'A';
+  synergyType: CoachSuggestionType;
   reason: string;
-  synergyType: 'COUNTER' | 'SYNERGY' | 'EXOTIC_CHEESE';
+  winCondition?: string;
+  lanePhasePlan?: string;
+  teamfightRole?: string;
+  coachWarning?: string;
   exoticBuildHook?: string;
+  keyMatchupAdvantage?: string;
 }
+
+export interface CoachDraftDiagnosis {
+  verdict: string;
+  damageAssessment: string;
+  missingNeeds: string[];
+  teamfightIdentity: string;
+  priorityGamePlan: string;
+}
+
