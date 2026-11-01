@@ -12,6 +12,7 @@ import { StatsExplorer } from './components/StatsExplorer';
 import { DraftSuggestionsModal } from './components/DraftSuggestionsModal';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { GitHubPagesGuideModal } from './components/GitHubPagesGuideModal';
+import { LcuSyncModal } from './components/LcuSyncModal';
 
 import { LoLChampion, LoLRole, DraftState, LoLBuild, DraftSuggestion } from './types/lol';
 import { riotDataService } from './services/riotDataService';
@@ -68,6 +69,7 @@ export default function App() {
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
   const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
+  const [isLcuModalOpen, setIsLcuModalOpen] = useState(false);
 
   // Initialisation des données au montage
   useEffect(() => {
@@ -384,6 +386,14 @@ export default function App() {
     setActiveSlot({ type: 'pick', team: 'allies', role: draft.playerRole });
   };
 
+  // Application de la draft synchronisée depuis le client League of Legends (LCU)
+  const handleApplyLcuDraft = (syncedDraft: DraftState) => {
+    setDraft(syncedDraft);
+    if (syncedDraft.playerChampion) {
+      generateAllBuilds(syncedDraft.playerChampion, syncedDraft, syncedDraft.playerRole);
+    }
+  };
+
   // Sélection d'un champion depuis l'explorateur de stats vers les builds
   const handleSelectChampFromStats = (champ: LoLChampion) => {
     setDraft(prev => {
@@ -438,6 +448,7 @@ export default function App() {
         activeView={activeView}
         onNavigate={setActiveView}
         onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
+        onOpenLcuModal={() => setIsLcuModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -459,6 +470,7 @@ export default function App() {
               onChangePlayerRole={handleChangePlayerRole}
               onOpenDraftSuggestions={handleOpenDraftSuggestions}
               onGenerateBuilds={handleGenerateBuildsClick}
+              onOpenLcuModal={() => setIsLcuModalOpen(true)}
             />
 
             {/* Champion Picker Grid avec détection des champions pris ou bannis */}
@@ -535,6 +547,12 @@ export default function App() {
         onClose={() => setIsGitHubModalOpen(false)}
       />
 
+      <LcuSyncModal
+        isOpen={isLcuModalOpen}
+        onClose={() => setIsLcuModalOpen(false)}
+        onApplyDraft={handleApplyLcuDraft}
+      />
+
       {/* Footer avec accès discret Déploiement GitHub et synchronisation Riot */}
       <footer className="mt-auto py-6 border-t border-slate-900 bg-[#02050B] text-slate-500 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -555,6 +573,14 @@ export default function App() {
             >
               <RefreshCw className={`w-3 h-3 ${isSyncingPatch ? 'animate-spin text-[#0AC8B9]' : ''}`} />
               <span>{isSyncingPatch ? 'Actualisation...' : 'Synchroniser Patch Riot'}</span>
+            </button>
+            <span>·</span>
+            <button
+              onClick={() => setIsLcuModalOpen(true)}
+              className="hover:text-[#0AC8B9] transition-colors"
+              title="Connecter et pré-remplir la phase de draft depuis le client officiel League of Legends"
+            >
+              Sync Client LoL (LCU)
             </button>
             <span>·</span>
             <button

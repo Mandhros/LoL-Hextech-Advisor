@@ -311,8 +311,14 @@ class RiotDataService {
     return this.champions;
   }
 
-  getChampionById(id: string): LoLChampion | undefined {
-    return this.champions.find(c => c.id.toLowerCase() === id.toLowerCase() || c.name.toLowerCase() === id.toLowerCase());
+  getChampionById(id: string | number): LoLChampion | undefined {
+    if (id === undefined || id === null || id === 0 || id === '0') return undefined;
+    const strId = String(id).toLowerCase();
+    return this.champions.find(c => 
+      c.id.toLowerCase() === strId || 
+      c.name.toLowerCase() === strId || 
+      c.key === String(id)
+    );
   }
 
   getAllItems(): LoLItem[] {

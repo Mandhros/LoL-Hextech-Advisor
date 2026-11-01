@@ -12,6 +12,7 @@ interface HeaderProps {
   activeView: 'draft' | 'builds' | 'stats';
   onNavigate: (view: 'draft' | 'builds' | 'stats') => void;
   onOpenApiKeyModal: () => void;
+  onOpenLcuModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -19,6 +20,7 @@ export const Header: React.FC<HeaderProps> = ({
   activeView,
   onNavigate,
   onOpenApiKeyModal,
+  onOpenLcuModal,
 }) => {
   const [soundOn, setSoundOn] = React.useState(soundEffects.isSoundEnabled());
 
@@ -99,6 +101,15 @@ export const Header: React.FC<HeaderProps> = ({
             title={soundOn ? 'Effets sonores activés' : 'Effets sonores désactivés'}
           >
             {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
+          </button>
+
+          <button
+            onClick={() => { soundEffects.playSelect(); onOpenLcuModal(); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#0AC8B9] hover:text-white bg-[#0AC8B9]/15 hover:bg-[#0AC8B9]/25 border border-[#0AC8B9]/40 rounded-md transition-all shadow-sm whitespace-nowrap shrink-0"
+            title="Connexion et pré-remplissage automatique depuis le client officiel League of Legends (LCU)"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-[#0AC8B9]" />
+            <span>Sync LoL (LCU)</span>
           </button>
 
           <button

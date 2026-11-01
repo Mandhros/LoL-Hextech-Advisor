@@ -33,6 +33,7 @@ interface DraftArenaProps {
   onChangePlayerRole: (role: LoLRole) => void;
   onOpenDraftSuggestions: () => void;
   onGenerateBuilds: () => void;
+  onOpenLcuModal: () => void;
 }
 
 export const DraftArena: React.FC<DraftArenaProps> = ({
@@ -47,6 +48,7 @@ export const DraftArena: React.FC<DraftArenaProps> = ({
   onChangePlayerRole,
   onOpenDraftSuggestions,
   onGenerateBuilds,
+  onOpenLcuModal,
 }) => {
   return (
     <div className="bg-[#091428]/80 border border-[#785A28]/30 rounded-xl p-4 sm:p-6 shadow-2xl relative overflow-hidden backdrop-blur-sm">
@@ -88,6 +90,16 @@ export const DraftArena: React.FC<DraftArenaProps> = ({
               })}
             </div>
           </div>
+
+          {/* Bouton Synchro Client LoL (LCU) */}
+          <button
+            onClick={() => { soundEffects.playSelect(); onOpenLcuModal(); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#0AC8B9] hover:text-white bg-[#0AC8B9]/15 hover:bg-[#0AC8B9]/25 border border-[#0AC8B9]/40 rounded-lg transition-all shadow-sm shrink-0"
+            title="Connecter et pré-remplir la draft en automatique depuis le client League of Legends"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-[#0AC8B9]" />
+            <span>Sync Client LoL (LCU)</span>
+          </button>
 
           {/* Bouton pour Réinitialiser / Clean la Champ Select */}
           <button
