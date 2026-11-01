@@ -301,25 +301,26 @@ export default function App() {
     setActiveSlot({ type: 'pick', team: 'allies', role });
   };
 
-  // Assignation d'un champion depuis la grille (Pick ou Ban)
-  const handleAssignChampion = (champ: LoLChampion) => {
-    if (!activeSlot) return;
+  // Assignation d'un champion depuis la grille ou depuis la frappe directe dans un slot (Pick ou Ban)
+  const handleAssignChampion = (champ: LoLChampion, customSlot?: ActiveSlotType) => {
+    const slotToAssign = customSlot || activeSlot;
+    if (!slotToAssign) return;
 
     soundEffects.playLockIn();
 
-    if (activeSlot.type === 'pick') {
+    if (slotToAssign.type === 'pick') {
       setDraft(prev => {
         const updatedTeam = {
-          ...prev[activeSlot.team],
-          [activeSlot.role]: champ,
+          ...prev[slotToAssign.team],
+          [slotToAssign.role]: champ,
         };
 
-        const isPlayerSlot = activeSlot.team === 'allies' && activeSlot.role === prev.playerRole;
+        const isPlayerSlot = slotToAssign.team === 'allies' && slotToAssign.role === prev.playerRole;
         const updatedPlayerChamp = isPlayerSlot ? champ : prev.playerChampion;
 
         const newDraft: DraftState = {
           ...prev,
-          [activeSlot.team]: updatedTeam,
+          [slotToAssign.team]: updatedTeam,
           playerChampion: updatedPlayerChamp,
         };
 
@@ -329,15 +330,15 @@ export default function App() {
 
         return newDraft;
       });
-    } else if (activeSlot.type === 'ban') {
+    } else if (slotToAssign.type === 'ban') {
       setDraft(prev => {
-        const newBans = [...prev.bans[activeSlot.team]];
-        newBans[activeSlot.index] = champ;
+        const newBans = [...prev.bans[slotToAssign.team]];
+        newBans[slotToAssign.index] = champ;
         return {
           ...prev,
           bans: {
             ...prev.bans,
-            [activeSlot.team]: newBans,
+            [slotToAssign.team]: newBans,
           }
         };
       });
@@ -462,10 +463,14 @@ export default function App() {
               draft={draft}
               activeSlot={activeSlot}
               compAnalysis={compAnalysis}
+              allChampions={allChampions}
+              pickedChampionIds={pickedChampionIds}
+              bannedChampionIds={bannedChampionIds}
               onSelectPickSlot={handleSelectPickSlot}
               onClearPickSlot={handleClearPickSlot}
               onSelectBanSlot={handleSelectBanSlot}
               onClearBanSlot={handleClearBanSlot}
+              onAssignChampion={handleAssignChampion}
               onResetDraft={handleResetDraft}
               onChangePlayerRole={handleChangePlayerRole}
               onOpenDraftSuggestions={handleOpenDraftSuggestions}
