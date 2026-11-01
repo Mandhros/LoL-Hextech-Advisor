@@ -12,6 +12,15 @@ import { CHAMPION_THEORIES, generateDynamicExoticTheory } from '../data/champion
 
 const LOCAL_STORAGE_KEY_API_KEY = 'lol_advisor_custom_gemini_key';
 
+// Cache en mémoire pour éviter tout appel répété ou boucle infinie
+const EXOTIC_BUILDS_CACHE: Record<string, LoLBuild[]> = {};
+const IN_FLIGHT_REQUESTS: Record<string, Promise<LoLBuild[]>> = {};
+
+function getBuildsCacheKey(championId: string, role: string, enemies: DraftState['enemies']): string {
+  const enemyList = Object.values(enemies || {}).filter(Boolean).map(c => c?.id).sort().join('_');
+  return `builds_${championId}_${role}_${enemyList}`;
+}
+
 export class GeminiService {
   getUserCustomApiKey(): string {
     return localStorage.getItem(LOCAL_STORAGE_KEY_API_KEY) || '';
@@ -27,6 +36,7 @@ export class GeminiService {
 
   /**
    * Génération des 2 Builds Exotiques (Builds 4 & 5) STRICTEMENT pour le champion sélectionné
+   * avec cache mémoire et déduplication pour protéger le quota API de l'utilisateur
    */
   async generateExoticBuilds(
     champion: LoLChampion,
@@ -34,44 +44,74 @@ export class GeminiService {
     draft: DraftState,
     compAnalysis: CompAnalysis
   ): Promise<LoLBuild[]> {
-    try {
-      const response = await fetch('/api/gemini/exotic-builds', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          champion,
-          role,
-          allies: draft.allies,
-          enemies: draft.enemies,
-          compAnalysis,
-        })
-      });
+    const cacheKey = getBuildsCacheKey(champion.id, role, draft.enemies);
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.builds && Array.isArray(data.builds) && data.builds.length >= 2) {
-          return this.mapRawAiBuildsToLoLBuilds(champion, data.builds);
-        }
-      }
-    } catch (err) {
-      console.warn('Serveur proxy Gemini injoignable, tentative en mode client/fallback:', err);
+    // 1. Retourner immédiatement depuis le cache si déjà calculé
+    const cachedBuilds = EXOTIC_BUILDS_CACHE[cacheKey];
+    if (cachedBuilds) {
+      return cachedBuilds;
     }
 
-    // Si on est sur GitHub Pages statique et que l'utilisateur a renseigné sa clé locale
-    const customKey = this.getUserCustomApiKey();
-    if (customKey) {
+    // 2. Si une requête est déjà en cours pour ce même build, mutualiser la promesse
+    const existingRequest = IN_FLIGHT_REQUESTS[cacheKey];
+    if (existingRequest) {
+      return existingRequest;
+    }
+
+    const requestPromise = (async () => {
       try {
-        const builds = await this.callGeminiDirectClient(champion, role, draft, compAnalysis, customKey);
-        if (builds && builds.length >= 2) {
-          return builds;
-        }
-      } catch (clientErr) {
-        console.warn('Appel client direct Gemini a échoué:', clientErr);
-      }
-    }
+        const response = await fetch('/api/gemini/exotic-builds', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            champion,
+            role,
+            allies: draft.allies,
+            enemies: draft.enemies,
+            compAnalysis,
+          })
+        });
 
-    // Fallback gracieux et instantané avec les builds exotiques viables intégrés adaptés au rôle
-    return buildEngine.getFallbackExoticBuilds(champion, role as any);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.builds && Array.isArray(data.builds) && data.builds.length >= 2) {
+            const mapped = this.mapRawAiBuildsToLoLBuilds(champion, data.builds);
+            EXOTIC_BUILDS_CACHE[cacheKey] = mapped;
+            return mapped;
+          }
+        }
+      } catch (err) {
+        console.warn('Serveur proxy Gemini injoignable, tentative en mode client/fallback:', err);
+      }
+
+      // Si on est sur GitHub Pages statique et que l'utilisateur a renseigné sa clé locale
+      const customKey = this.getUserCustomApiKey();
+      if (customKey) {
+        try {
+          const builds = await this.callGeminiDirectClient(champion, role, draft, compAnalysis, customKey);
+          if (builds && builds.length >= 2) {
+            EXOTIC_BUILDS_CACHE[cacheKey] = builds;
+            return builds;
+          }
+        } catch (clientErr) {
+          console.warn('Appel client direct Gemini a échoué:', clientErr);
+        }
+      }
+
+      // Fallback gracieux et instantané avec les builds exotiques viables intégrés adaptés au rôle
+      const fallbackBuilds = buildEngine.getFallbackExoticBuilds(champion, role as any);
+      EXOTIC_BUILDS_CACHE[cacheKey] = fallbackBuilds;
+      return fallbackBuilds;
+    })();
+
+    IN_FLIGHT_REQUESTS[cacheKey] = requestPromise;
+
+    try {
+      const result = await requestPromise;
+      return result;
+    } finally {
+      delete IN_FLIGHT_REQUESTS[cacheKey];
+    }
   }
 
   /**

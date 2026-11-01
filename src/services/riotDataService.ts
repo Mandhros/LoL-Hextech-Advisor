@@ -52,6 +52,64 @@ class RiotDataService {
   }
 
   /**
+   * Cartographie experte des rôles méta compétitifs pour éliminer les attributions erronées de Riot Tags
+   */
+  private static readonly META_ROLE_MAPPING: Record<string, LoLRole[]> = {
+    // Toplaners primaires
+    Aatrox: ['TOP'], Camille: ['TOP', 'SUPPORT'], Chogath: ['TOP', 'MID'], Darius: ['TOP'],
+    DrMundo: ['TOP', 'JUNGLE'], Fiora: ['TOP'], Gangplank: ['TOP', 'MID'], Garen: ['TOP'],
+    Gnar: ['TOP'], Gwen: ['TOP', 'JUNGLE'], Illaoi: ['TOP'], Irelia: ['TOP', 'MID'],
+    Jax: ['TOP', 'JUNGLE'], Jayce: ['TOP', 'MID'], Kayle: ['TOP', 'MID'], Kennen: ['TOP'],
+    Kled: ['TOP', 'MID'], Ksante: ['TOP'], Malphite: ['TOP', 'SUPPORT'], Mordekaiser: ['TOP', 'JUNGLE'],
+    Nasus: ['TOP'], Olaf: ['TOP', 'JUNGLE'], Ornn: ['TOP'], Pantheon: ['TOP', 'MID', 'SUPPORT'],
+    Poppy: ['TOP', 'JUNGLE', 'SUPPORT'], Quinn: ['TOP'], Renekton: ['TOP'], Riven: ['TOP'],
+    Rumble: ['TOP', 'MID', 'JUNGLE'], Sett: ['TOP', 'SUPPORT'], Shen: ['TOP', 'SUPPORT'],
+    Sion: ['TOP'], TahmKench: ['TOP', 'SUPPORT'], Teemo: ['TOP'], Trundle: ['TOP', 'JUNGLE'],
+    Tryndamere: ['TOP', 'MID'], Urgot: ['TOP'], Volibear: ['TOP', 'JUNGLE'], Warwick: ['TOP', 'JUNGLE'],
+    Yorick: ['TOP'],
+
+    // Junglers primaires
+    Amumu: ['JUNGLE', 'SUPPORT'], Belveth: ['JUNGLE'], Briar: ['JUNGLE'], Diana: ['JUNGLE', 'MID'],
+    Ekko: ['JUNGLE', 'MID'], Elise: ['JUNGLE'], Evelynn: ['JUNGLE'], Fiddlesticks: ['JUNGLE'],
+    Gragas: ['JUNGLE', 'TOP', 'MID'], Graves: ['JUNGLE'], Hecarim: ['JUNGLE'], Ivern: ['JUNGLE'],
+    JarvanIV: ['JUNGLE'], Karthus: ['JUNGLE', 'BOTTOM'], Kayn: ['JUNGLE'], KhaZix: ['JUNGLE'],
+    Kindred: ['JUNGLE'], LeeSin: ['JUNGLE'], Lillia: ['JUNGLE'], MasterYi: ['JUNGLE'],
+    Nidalee: ['JUNGLE'], Nocturne: ['JUNGLE'], Nunu: ['JUNGLE'], Rammus: ['JUNGLE'],
+    RekSai: ['JUNGLE'], Rengar: ['JUNGLE', 'TOP'], Sejuani: ['JUNGLE', 'TOP'], Shaco: ['JUNGLE', 'SUPPORT'],
+    Shyvana: ['JUNGLE'], Skarner: ['JUNGLE', 'TOP'], Taliyah: ['JUNGLE', 'MID'], Udyr: ['JUNGLE', 'TOP'],
+    Vi: ['JUNGLE'], Viego: ['JUNGLE'], Wukong: ['JUNGLE', 'TOP'], XinZhao: ['JUNGLE'], Zac: ['JUNGLE', 'TOP'],
+
+    // Midlaners primaires
+    Ahri: ['MID'], Akali: ['MID', 'TOP'], Akshan: ['MID', 'TOP'], Anivia: ['MID'],
+    Annie: ['MID', 'SUPPORT'], AurelionSol: ['MID'], Azir: ['MID'], Cassiopeia: ['MID', 'TOP'],
+    Corki: ['MID', 'BOTTOM'], Fizz: ['MID'], Galio: ['MID', 'SUPPORT'], Hwei: ['MID', 'SUPPORT'],
+    Kassadin: ['MID'], Katarina: ['MID'], LeBlanc: ['MID'], Lissandra: ['MID'],
+    Lux: ['MID', 'SUPPORT'], Malzahar: ['MID'], Neeko: ['MID', 'SUPPORT'], Orianna: ['MID'],
+    Qiyana: ['MID'], Ryze: ['MID', 'TOP'], Swai: ['MID', 'SUPPORT', 'BOTTOM'], Swain: ['MID', 'SUPPORT', 'BOTTOM'],
+    Sylas: ['MID', 'TOP', 'JUNGLE'], Syndra: ['MID'], Talon: ['MID', 'JUNGLE'], TwistedFate: ['MID', 'TOP'],
+    Veigar: ['MID', 'BOTTOM'], Velkoz: ['MID', 'SUPPORT'], Vex: ['MID'], Viktor: ['MID'],
+    Vladimir: ['MID', 'TOP'], Xerath: ['MID', 'SUPPORT'], Yasuo: ['MID', 'TOP'], Yone: ['MID', 'TOP'],
+    Zed: ['MID', 'JUNGLE'], Zoe: ['MID'],
+
+    // AD Carry / Botlane
+    Aphelios: ['BOTTOM'], Ashe: ['BOTTOM', 'SUPPORT'], Caitlyn: ['BOTTOM'], Draven: ['BOTTOM'],
+    Ezreal: ['BOTTOM'], Jhin: ['BOTTOM'], Jinx: ['BOTTOM'], Kaisa: ['BOTTOM'],
+    Kalista: ['BOTTOM'], KogMaw: ['BOTTOM'], Lucian: ['BOTTOM', 'MID'], MissFortune: ['BOTTOM'],
+    Nilah: ['BOTTOM'], Samira: ['BOTTOM'], Sivir: ['BOTTOM'], Smolder: ['BOTTOM', 'MID'],
+    Tristana: ['BOTTOM', 'MID'], Twitch: ['BOTTOM', 'SUPPORT'], Varus: ['BOTTOM', 'MID'],
+    Vayne: ['BOTTOM', 'TOP'], Xayah: ['BOTTOM'], Zeri: ['BOTTOM'], Ziggs: ['BOTTOM', 'MID'],
+
+    // Supports
+    Alistar: ['SUPPORT'], Bard: ['SUPPORT'], Blitzcrank: ['SUPPORT'], Brand: ['SUPPORT', 'JUNGLE', 'MID'],
+    Braum: ['SUPPORT'], Janna: ['SUPPORT'], Karma: ['SUPPORT', 'MID'], Leona: ['SUPPORT'],
+    Lulu: ['SUPPORT'], Mel: ['MID', 'SUPPORT'], Milio: ['SUPPORT'], Morgana: ['SUPPORT', 'JUNGLE'],
+    Nami: ['SUPPORT'], Nautilus: ['SUPPORT'], Pyke: ['SUPPORT', 'MID'], Rakan: ['SUPPORT'],
+    Rell: ['SUPPORT', 'JUNGLE'], Renata: ['SUPPORT'], Senna: ['SUPPORT', 'BOTTOM'], Seraphine: ['SUPPORT', 'BOTTOM', 'MID'],
+    Sona: ['SUPPORT'], Soraka: ['SUPPORT'], Taric: ['SUPPORT'], Thresh: ['SUPPORT'], Yuumi: ['SUPPORT'],
+    Zyra: ['SUPPORT', 'JUNGLE'],
+  };
+
+  /**
    * Synchronisation des champions officiels
    */
   private async syncChampionsFromDDragon(forceRefresh: boolean): Promise<void> {
@@ -69,7 +127,7 @@ class RiotDataService {
 
       for (const [id, raw] of Object.entries(remoteChampsMap)) {
         if (!existingIds.has(id)) {
-          const roles = this.inferRolesFromTags(raw.tags || []);
+          const roles = RiotDataService.META_ROLE_MAPPING[id] || this.inferRolesFromTags(raw.tags || []);
           mergedList.push({
             id: raw.id,
             key: raw.key,
@@ -96,57 +154,47 @@ class RiotDataService {
               {
                 id: `${id}P`,
                 key: 'P',
-                name: 'Passif de combat inné',
-                description: `Propriété passive unique de ${raw.name}. Modifie les attaques de base, les statistiques ou les capacités de combat.`,
+                name: `Passif : ${raw.name}`,
+                description: `Compétence passive de combat de ${raw.name}.`,
                 iconUrl: `https://ddragon.leagueoflegends.com/cdn/${this.currentVersion}/img/champion/${raw.image.full}`,
-                cooldown: 'Passif permanent / Rechargement dynamique',
-                cost: 'Pas de coût',
-                range: raw.tags?.includes('Marksman') ? '550' : '175 (Mêlée)',
-                ratios: raw.tags?.includes('Mage') ? '+25% AP' : '+15% AD total',
+                cooldown: 'Passif permanent',
+                cost: 'Sans coût',
               },
               {
                 id: `${id}Q`,
                 key: 'Q',
-                name: 'Sort Principal (A / Q)',
-                description: `Compétence primaire offensive de ${raw.name}. Dégâts principaux et déclencheur d'escarmouche.`,
+                name: 'Sort A (Q)',
+                description: `Compétence primaire de ${raw.name}.`,
                 iconUrl: `https://ddragon.leagueoflegends.com/cdn/${this.currentVersion}/img/champion/${raw.image.full}`,
-                cooldown: '8 / 7 / 6 / 5 / 4 s',
-                cost: raw.stats.mp > 0 ? '50 / 60 / 70 / 80 / 90 Mana' : 'Sans coût / Énergie',
-                range: raw.tags?.includes('Marksman') ? '800' : '350',
-                ratios: raw.tags?.includes('Mage') ? '+70% / 85% AP' : '+110% / 140% AD total',
+                cooldown: '6s',
+                cost: raw.stats.mp > 0 ? '50 Mana' : 'Sans coût',
               },
               {
                 id: `${id}W`,
                 key: 'W',
-                name: 'Sort Secondaire (Z / W)',
-                description: `Compétence de contrôle, de mitigation ou d'utilité tactique pour ${raw.name}.`,
+                name: 'Sort Z (W)',
+                description: `Sort de contrôle ou de mitigation de ${raw.name}.`,
                 iconUrl: `https://ddragon.leagueoflegends.com/cdn/${this.currentVersion}/img/champion/${raw.image.full}`,
-                cooldown: '14 / 13 / 12 / 11 / 10 s',
-                cost: raw.stats.mp > 0 ? '60 / 65 / 70 / 75 / 80 Mana' : 'Sans coût',
-                range: raw.tags?.includes('Mage') ? '900' : '450',
-                ratios: raw.tags?.includes('Tank') ? '+10% PV Max, +40% Armure' : raw.tags?.includes('Mage') ? '+65% AP' : '+80% AD bonus',
+                cooldown: '12s',
+                cost: raw.stats.mp > 0 ? '60 Mana' : 'Sans coût',
               },
               {
                 id: `${id}E`,
                 key: 'E',
-                name: 'Mobilité & Dégâts (E)',
-                description: `Sort de replacement, ruée, dash ou amplification de combat de ${raw.name}.`,
+                name: 'Sort E',
+                description: `Mobilité ou utilitaire de ${raw.name}.`,
                 iconUrl: `https://ddragon.leagueoflegends.com/cdn/${this.currentVersion}/img/champion/${raw.image.full}`,
-                cooldown: '16 / 15 / 14 / 13 / 12 s',
-                cost: raw.stats.mp > 0 ? '50 / 55 / 60 / 65 / 70 Mana' : 'Sans coût',
-                range: '450 - 650',
-                ratios: raw.tags?.includes('Mage') ? '+60% AP' : '+90% AD bonus',
+                cooldown: '14s',
+                cost: raw.stats.mp > 0 ? '60 Mana' : 'Sans coût',
               },
               {
                 id: `${id}R`,
                 key: 'R',
-                name: 'Ultime Dévastateur (R)',
-                description: `Compétence ultime à fort impact pour renverser les combats d'équipe et sécuriser les éliminations.`,
+                name: 'Ultime (R)',
+                description: `Compétence ultime majeure de ${raw.name}.`,
                 iconUrl: `https://ddragon.leagueoflegends.com/cdn/${this.currentVersion}/img/champion/${raw.image.full}`,
-                cooldown: '120 / 100 / 80 s',
+                cooldown: '100s',
                 cost: raw.stats.mp > 0 ? '100 Mana' : 'Sans coût',
-                range: raw.tags?.includes('Marksman') || raw.tags?.includes('Mage') ? '1200+' : '600',
-                ratios: raw.tags?.includes('Mage') ? '+100% / 120% AP' : '+150% AD bonus, +12% PV max',
               },
             ]
           });
@@ -156,6 +204,60 @@ class RiotDataService {
       this.champions = mergedList;
     } catch (err) {
       console.warn('Erreur de parsing des champions DDragon:', err);
+    }
+  }
+
+  /**
+   * Charge à la demande les vrais sorts officiels avec noms, ratios et descriptions complètes
+   */
+  async fetchChampionDetailedSpells(championId: string): Promise<LoLChampion | undefined> {
+    const champ = this.getChampionById(championId);
+    if (!champ) return undefined;
+
+    // Si les sorts ont déjà été hydratés (nom du passif ne commence pas par "Passif :")
+    if (champ.spells && champ.spells.length >= 5 && !champ.spells[0].name.startsWith('Passif :')) {
+      return champ;
+    }
+
+    try {
+      const url = `https://ddragon.leagueoflegends.com/cdn/${this.currentVersion}/data/fr_FR/champion/${champ.id}.json`;
+      const res = await fetch(url);
+      if (!res.ok) return champ;
+
+      const data = await res.json();
+      const detailed = data?.data?.[champ.id];
+      if (!detailed) return champ;
+
+      const keys: ('Q' | 'W' | 'E' | 'R')[] = ['Q', 'W', 'E', 'R'];
+      const realSpells = [
+        {
+          id: `${champ.id}P`,
+          key: 'P' as const,
+          name: detailed.passive?.name || `Passif : ${champ.name}`,
+          description: this.cleanRiotItemDescription(detailed.passive?.description || ''),
+          iconUrl: detailed.passive?.image?.full 
+            ? `https://ddragon.leagueoflegends.com/cdn/${this.currentVersion}/img/passive/${detailed.passive.image.full}`
+            : champ.iconUrl,
+          cooldown: 'Passif permanent',
+          cost: 'Sans coût',
+        },
+        ...detailed.spells.map((s: any, idx: number) => ({
+          id: `${champ.id}${keys[idx] || 'Q'}`,
+          key: keys[idx] || ('Q' as const),
+          name: s.name,
+          description: this.cleanRiotItemDescription(s.description || ''),
+          iconUrl: `https://ddragon.leagueoflegends.com/cdn/${this.currentVersion}/img/spell/${s.image.full}`,
+          cooldown: s.cooldownBurn ? `${s.cooldownBurn} s` : undefined,
+          cost: s.costBurn ? `${s.costBurn} ${champ.stats.mp > 0 ? 'Mana' : ''}` : undefined,
+          range: s.rangeBurn ? `${s.rangeBurn}` : undefined,
+        }))
+      ];
+
+      champ.spells = realSpells;
+      return champ;
+    } catch (e) {
+      console.warn(`Impossible de charger les sorts détaillés de ${champ.name}:`, e);
+      return champ;
     }
   }
 

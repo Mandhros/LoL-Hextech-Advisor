@@ -159,6 +159,7 @@ export interface DraftSuggestion {
   coachWarning?: string;
   exoticBuildHook?: string;
   keyMatchupAdvantage?: string;
+  dpmMetrics?: ChampionDpmMetrics;
 }
 
 export interface CoachDraftDiagnosis {
@@ -167,5 +168,100 @@ export interface CoachDraftDiagnosis {
   missingNeeds: string[];
   teamfightIdentity: string;
   priorityGamePlan: string;
+}
+
+// === METRIQUES STYLE DPM.LOL ===
+export type ScalingCurve = 'EARLY' | 'MID' | 'LATE' | 'HYPER' | 'BALANCED';
+
+export interface ChampionDpmMetrics {
+  championId: string;
+  role: LoLRole;
+  expectedDpm: number;          // Ex: 680 DPM
+  gd15: number;                 // Différentiel d'or moyen à 15m (ex: +320 ou -180)
+  csd15: number;                // Différentiel de sbires à 15m (ex: +8.5 ou -4.2)
+  winrate: number;              // Taux de victoire général (ex: 51.4%)
+  damageShare: number;          // % des dégâts de l'équipe (ex: 27.5%)
+  earlyDominanceScore: number;  // 0 à 100 (capacité à dominer les 10 premières minutes)
+  killPressureLv3: number;      // 0 à 100
+  killPressureLv6: number;      // 0 à 100
+  scalingProfile: ScalingCurve; // Profil de scaling
+  powerSpikes: string[];        // Ex: ['Niv 3', 'Lame du Roi Déchu', 'Niv 11']
+  keyStrengths: string[];       // Ex: ['Burst monocible', 'Priorité de vague rapide']
+  counterMatchups: Record<string, number>; // ID champion ennemi -> delta winrate (+3.5% ou -4.8%)
+}
+
+export interface MatchupDpmComparison {
+  playerChamp: LoLChampion;
+  enemyChamp: LoLChampion;
+  role: LoLRole;
+  playerMetrics: ChampionDpmMetrics;
+  enemyMetrics: ChampionDpmMetrics;
+  deltaDpm: number;             // Différence de DPM projeté
+  deltaGd15: number;            // Différence attendue d'or à 15m
+  deltaCsd15: number;           // Différence attendue de creeps à 15m
+  laneAdvantagePercent: number; // Avantage estimé en % (-50% à +50%)
+  laneFavorite: 'PLAYER' | 'ENEMY' | 'EVEN';
+  tacticalKey: string;          // Conseil de jeu clé en matchup
+  dangerWindow: string;         // Fenêtre de danger adverse
+  winCondition: string;         // Condition de victoire de lane
+}
+
+// === IN-GAME COMPANION & SECOND SCREEN STATE ===
+export type SummonerSpellKey = 
+  | 'FLASH' 
+  | 'TELEPORT' 
+  | 'IGNITE' 
+  | 'CLEANSE' 
+  | 'GHOST' 
+  | 'EXHAUST' 
+  | 'HEAL' 
+  | 'BARRIER' 
+  | 'SMITE';
+
+export interface SummonerSpellData {
+  key: SummonerSpellKey;
+  name: string;
+  baseCooldown: number; // en secondes
+  iconUrl: string;
+}
+
+export interface SummonerSpellTimer {
+  id: string; // ex: 'TOP_spell1'
+  spellKey: SummonerSpellKey;
+  role: LoLRole;
+  enemyChampionId: string;
+  baseCooldown: number;
+  hasLucidityBoots: boolean;  // -12 Haste invocateur
+  hasCosmicInsight: boolean;  // -18 Haste invocateur
+  currentCooldown: number;    // Temps total calculé
+  endsAtGameSec: number | null; // Heure de jeu (en sec) où le sort revient
+  remainingSec: number;       // Temps restant
+  isActive: boolean;          // true = en recharge
+}
+
+export type NeutralObjectiveKey = 'VOIDGRUBS' | 'HERALD' | 'DRAGON' | 'BARON' | 'ELDER';
+
+export interface ObjectiveTimer {
+  key: NeutralObjectiveKey;
+  name: string;
+  spawnTimeSec: number;       // Première apparition (ex: 300 pour 5:00)
+  respawnTimeSec: number;     // Délai de réapparition (ex: 300 pour Dragon)
+  despawnTimeSec?: number;    // Heure de disparition (ex: 830 pour Héraut)
+  nextSpawnSec: number;       // Prochain spawn en heure de jeu
+  isAlive: boolean;           // Actuellement présent sur la carte
+  iconUrl: string;
+  tacticalNote: string;
+}
+
+export interface InGameMatchState {
+  gameTimeSec: number;        // Horloge de la partie en secondes
+  isRunning: boolean;
+  gameMode: 'MANUAL' | 'LIVE_API_SYNC';
+  summonerTimers: Record<string, SummonerSpellTimer>;
+  objectives: Record<NeutralObjectiveKey, ObjectiveTimer>;
+  playerRole: LoLRole;
+  playerChampion: LoLChampion | null;
+  enemyChampion: LoLChampion | null;
+  adaptiveItemNotes: string[];
 }
 

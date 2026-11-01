@@ -13,6 +13,7 @@ import { DraftSuggestionsModal } from './components/DraftSuggestionsModal';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { GitHubPagesGuideModal } from './components/GitHubPagesGuideModal';
 import { LcuSyncModal } from './components/LcuSyncModal';
+import { DpmMatchupCard } from './components/DpmMatchupCard';
 
 import { LoLChampion, LoLRole, DraftState, LoLBuild, DraftSuggestion, CoachDraftDiagnosis } from './types/lol';
 import { riotDataService } from './services/riotDataService';
@@ -167,37 +168,48 @@ export default function App() {
     return buildEngine.analyzeComp(draft);
   }, [draft]);
 
-  // Génération complète des 5 builds (Algorithmique + Gemini AI) STRICTEMENT POUR LE CHAMPION DU JOUEUR ET SA LANE
-  const generateAllBuilds = useCallback(async (champ: LoLChampion, currentDraft: DraftState, targetRole?: LoLRole) => {
+  // Génération instantanée et locale des 5 builds (SANS aucun appel réseau ni API automatique)
+  const generateAllBuilds = useCallback((champ: LoLChampion, currentDraft: DraftState, targetRole?: LoLRole) => {
     if (!champ) return;
     const effectiveRole = targetRole || currentDraft.playerRole;
 
+    // Hydrater à la demande les vrais sorts officiels du champion depuis DDragon
+    riotDataService.fetchChampionDetailedSpells(champ.id).catch(() => {});
+
     // 1. Builds 1 (Méta Pure), 2 (Orienté Défense), 3 (Orienté Offensif) immédiats adaptés à la lane
     const baseBuilds = buildEngine.generateAlgorithmicBuilds(champ, currentDraft, effectiveRole);
-    // 2. Builds 4 (Exotique Viable) et 5 (Signature Cheese) temporaires pendant le calcul de Gemini
+    // 2. Builds 4 (Exotique Viable) et 5 (Signature Cheese) issus de la base theorycrafting hors-ligne
     const fallbacks = buildEngine.getFallbackExoticBuilds(champ, effectiveRole);
     setBuilds([...baseBuilds, ...fallbacks]);
+  }, []);
 
-    // 3. Appel de l'IA Gemini pour affiner les 2 builds exotiques et viables
+  // Optimisation manuelle et ciblée via l'IA Gemini (déclenchée UNIQUEMENT sur clic explicite de l'utilisateur)
+  const handleOptimizeWithAi = useCallback(async () => {
+    if (!draft.playerChampion || isGeneratingAi) return;
+    soundEffects.playSelect();
     setIsGeneratingAi(true);
+
     try {
-      const currentCompAnalysis = buildEngine.analyzeComp(currentDraft);
+      const currentCompAnalysis = buildEngine.analyzeComp(draft);
       const aiExoticBuilds = await geminiService.generateExoticBuilds(
-        champ,
-        effectiveRole,
-        currentDraft,
+        draft.playerChampion,
+        draft.playerRole,
+        draft,
         currentCompAnalysis
       );
 
       if (aiExoticBuilds && aiExoticBuilds.length >= 2) {
-        setBuilds([...baseBuilds, aiExoticBuilds[0], aiExoticBuilds[1]]);
+        setBuilds(prev => {
+          const base = prev.slice(0, 3);
+          return [...base, aiExoticBuilds[0], aiExoticBuilds[1]];
+        });
       }
     } catch (err) {
-      console.warn('Erreur génération Gemini, conservation des builds exotiques intégrés:', err);
+      console.warn('Erreur optimisation manuelle Gemini:', err);
     } finally {
       setIsGeneratingAi(false);
     }
-  }, []);
+  }, [draft, isGeneratingAi]);
 
   // Réinitialiser / Clean toute la Champion Select
   const handleResetDraft = () => {
@@ -457,7 +469,7 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
-        {/* View Switcher: Draft vs 5 Builds vs Stats */}
+        {/* View Switcher: Draft vs 5 Builds vs InGame vs Stats */}
         {activeView === 'draft' ? (
           <div className="space-y-6 animate-in fade-in">
             {/* Draft 5v5 Arena Board & Bans */}
@@ -480,6 +492,15 @@ export default function App() {
               onOpenLcuModal={() => setIsLcuModalOpen(true)}
             />
 
+            {/* Matrice de Matchup & DPM Direct Inspirée de DPM.LOL */}
+            {draft.playerChampion && draft.enemies[draft.playerRole] && (
+              <DpmMatchupCard
+                playerChampion={draft.playerChampion}
+                enemyChampion={draft.enemies[draft.playerRole]}
+                role={draft.playerRole}
+              />
+            )}
+
             {/* Champion Picker Grid avec détection des champions pris ou bannis */}
             <ChampionGrid
               champions={allChampions}
@@ -501,7 +522,7 @@ export default function App() {
                 onSelectRole={handleChangePlayerRole}
                 builds={builds}
                 isGeneratingAi={isGeneratingAi}
-                onRegenerateAiBuilds={() => generateAllBuilds(draft.playerChampion!, draft, draft.playerRole)}
+                onRegenerateAiBuilds={handleOptimizeWithAi}
               />
             ) : (
               <div className="bg-[#091428] border border-slate-800 rounded-xl p-12 text-center space-y-4">

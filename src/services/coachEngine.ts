@@ -6,6 +6,7 @@
 import { LoLChampion, LoLRole, DraftState, DraftSuggestion, CoachDraftDiagnosis, CompAnalysis } from '../types/lol';
 import { riotDataService } from './riotDataService';
 import { buildEngine } from './buildEngine';
+import { getChampionDpmMetrics } from '../data/dpmMetrics';
 
 // Base de connaissances stratégique de niveau Coach des Worlds
 interface MatchupKnowledge {
@@ -336,6 +337,11 @@ export class CoachEngine {
     if (cheesePick) {
       suggestions.push(cheesePick);
       chosenIds.add(cheesePick.champion.id);
+    }
+
+    // Enrichir systématiquement chaque suggestion avec ses métriques de combat DPM
+    for (const sug of suggestions) {
+      sug.dpmMetrics = getChampionDpmMetrics(sug.champion, playerRole);
     }
 
     return { suggestions, diagnosis };

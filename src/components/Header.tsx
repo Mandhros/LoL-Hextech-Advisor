@@ -38,7 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-3 shrink-0">
           <button 
             onClick={() => onNavigate('draft')} 
-            className="flex items-center gap-2.5 text-left group focus-visible:outline-none"
+            className="flex items-center gap-2.5 text-left group focus-visible:outline-none cursor-pointer"
           >
             <div className="w-9 h-9 rounded-md bg-gradient-to-br from-[#C8AA6E] via-[#785A28] to-[#0AC8B9] p-[1.5px] shadow-sm">
               <div className="w-full h-full bg-[#091428] rounded-[5px] flex items-center justify-center">
@@ -50,28 +50,28 @@ export const Header: React.FC<HeaderProps> = ({
                 HEXTECH ADVISOR
               </span>
               <span className="block text-[10px] text-[#0AC8B9] font-mono tracking-widest uppercase">
-                Patch {patchVersion} · LoL Draft & Builds
+                Patch {patchVersion} · DPM & Draft
               </span>
             </div>
           </button>
         </div>
 
-        {/* Zone 2: 3 clean single-line navigation links */}
+        {/* Zone 2: Clean single-line navigation links */}
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
           <button
             onClick={() => { soundEffects.playSelect(); onNavigate('draft'); }}
-            className={`whitespace-nowrap transition-colors py-1 border-b-2 ${
+            className={`whitespace-nowrap transition-colors py-1 border-b-2 cursor-pointer ${
               activeView === 'draft'
                 ? 'text-[#F0E6D2] border-[#0AC8B9] font-semibold'
                 : 'text-slate-400 hover:text-slate-200 border-transparent'
             }`}
           >
-            Simulateur de Draft
+            Draft & Matchups DPM
           </button>
           
           <button
             onClick={() => { soundEffects.playSelect(); onNavigate('builds'); }}
-            className={`whitespace-nowrap transition-colors py-1 border-b-2 ${
+            className={`whitespace-nowrap transition-colors py-1 border-b-2 cursor-pointer ${
               activeView === 'builds'
                 ? 'text-[#F0E6D2] border-[#C8AA6E] font-semibold'
                 : 'text-slate-400 hover:text-slate-200 border-transparent'
@@ -82,7 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             onClick={() => { soundEffects.playSelect(); onNavigate('stats'); }}
-            className={`whitespace-nowrap transition-colors py-1 border-b-2 ${
+            className={`whitespace-nowrap transition-colors py-1 border-b-2 cursor-pointer ${
               activeView === 'stats'
                 ? 'text-[#F0E6D2] border-[#0AC8B9] font-semibold'
                 : 'text-slate-400 hover:text-slate-200 border-transparent'

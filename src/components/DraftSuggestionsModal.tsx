@@ -280,6 +280,12 @@ export const DraftSuggestionsModal: React.FC<DraftSuggestionsModalProps> = ({
                               <span className="text-xs font-mono font-bold text-[#0AC8B9] bg-[#0AC8B9]/10 px-2 py-0.5 rounded border border-[#0AC8B9]/20">
                                 Note Coach : {sug.score}/100
                               </span>
+
+                              {sug.dpmMetrics && (
+                                <span className="text-[10px] font-mono text-[#F0E6D2] bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700/60">
+                                  DPM.lol : {sug.dpmMetrics.expectedDpm} DPM · GD@15: {sug.dpmMetrics.gd15 >= 0 ? `+${sug.dpmMetrics.gd15}g` : `${sug.dpmMetrics.gd15}g`} · Scaling : {sug.dpmMetrics.scalingProfile}
+                                </span>
+                              )}
                             </div>
 
                             <p className="text-xs text-slate-300 mt-1 font-medium leading-relaxed">
